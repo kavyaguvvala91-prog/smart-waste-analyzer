@@ -1,23 +1,23 @@
-# Smart Waste Analyzer – AI Microservice Dependencies
-# Generated for Python 3.11+
+# Smart Waste Analyzer - AI Microservice Dependencies
+# Kept compatible with Render's current Python runtime.
 
-# ── Core web framework ────────────────────────────────────────────────────────
+# Core web framework
 flask==3.0.3
 flask-cors==4.0.1
-Werkzeug==3.0.3          # Secure file handling (bundled with Flask, pinned for stability)
+Werkzeug==3.0.3
 
-# ── YOLOv8 object detection ───────────────────────────────────────────────────
-ultralytics==8.2.48      # Includes YOLOv8 model, trainer, and predictor
+# YOLOv8 object detection
+ultralytics>=8.3.0
 
-# ── Computer vision & image processing ───────────────────────────────────────
-opencv-python==4.10.0.84  # cv2 – frame decode, draw, imwrite
-Pillow==10.4.0            # PIL – image validation and format support
-numpy==1.26.4             # Array operations (compatible with cv2 & ultralytics)
+# Computer vision & image processing
+opencv-python>=4.12.0.88
+Pillow>=11.0.0
+numpy>=2.2.0
 
-# ── PyTorch (CPU build – swap for +cu118/+cu121 for GPU inference) ────────────
-torch==2.3.1
-torchvision==0.18.1
+# PyTorch
+torch>=2.9.0
+torchvision>=0.24.0
 
-# ── Utilities ─────────────────────────────────────────────────────────────────
-python-dotenv==1.0.1     # Load .env variables (optional, for config management)
-gunicorn==22.0.0         # Production WSGI server (Linux/macOS)
+# Utilities
+python-dotenv==1.0.1
+gunicorn==22.0.0
