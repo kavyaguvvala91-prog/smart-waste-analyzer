@@ -192,8 +192,9 @@ def create_app() -> Flask:
 if __name__ == "__main__":
     flask_app = create_app()
 
-    host = os.getenv("FLASK_HOST", "0.0.0.0")
-    port = int(os.getenv("FLASK_PORT", 8000))
+    host = os.getenv("HOST", os.getenv("FLASK_HOST", "0.0.0.0"))
+    # Prefer platform-provided PORT when present so cloud hosts can route traffic.
+    port = int(os.getenv("PORT", os.getenv("FLASK_PORT", 8000)))
     debug = os.getenv("FLASK_DEBUG", "false").lower() == "true"
 
     logger.info("Starting Smart Waste Analyzer AI service on %s:%d (debug=%s)", host, port, debug)
