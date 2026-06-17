@@ -1,0 +1,8 @@
+2026-06-17 10:22:25  INFO      predictor — Loading YOLOv8 model from 'C:\Users\Kavya\OneDrive\Desktop\smart waste\ai-model\best.pt' …
+2026-06-17 10:22:25  INFO      predictor — Model loaded successfully. Classes: ['cardboard', 'glass', 'metal', 'paper', 'plastic', 'trash']
+2026-06-17 10:22:25  INFO      __main__ — Starting Smart Waste Analyzer AI service on 0.0.0.0:8000 (debug=False)
+2026-06-17 10:22:25  INFO      werkzeug — [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://192.168.29.219:8000
+2026-06-17 10:22:25  INFO      werkzeug — [33mPress CTRL+C to quit[0m

@@ -8,7 +8,24 @@ import FormData from 'form-data';
 import fs from 'fs';
 
 // Flask YOLO service runs on port 8000 by default in ai-model/app.py.
-const getAiModelUrl = () => process.env.AI_MODEL_URL?.trim() || 'http://localhost:8000';
+// In production, AI_MODEL_URL must point to the deployed Python service URL.
+const DEFAULT_LOCAL_AI_MODEL_URL = 'http://127.0.0.1:8000';
+
+const getAiModelUrl = () => {
+  const configuredUrl = process.env.AI_MODEL_URL?.trim();
+
+  if (configuredUrl) {
+    return configuredUrl.replace(/\/+$/, '');
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      'AI_MODEL_URL is not configured. Set it to the deployed Python YOLO service URL.'
+    );
+  }
+
+  return DEFAULT_LOCAL_AI_MODEL_URL;
+};
 
 // Recyclable waste classes (used for classification logic)
 const RECYCLABLE_CLASSES = new Set([
@@ -36,13 +53,14 @@ export const detectWaste = async (imagePath) => {
   const form = new FormData();
   form.append('image', fs.createReadStream(imagePath));
   const aiModelUrl = getAiModelUrl();
+  const requestTimeoutMs = 120000; // Give free Render services time to wake up
 
   try {
     const response = await axios.post(`${aiModelUrl}/predict`, form, {
       headers: {
         ...form.getHeaders(),
       },
-      timeout: 30000, // 30 second timeout for AI inference
+      timeout: requestTimeoutMs,
     });
 
     const { detections } = response.data;
@@ -54,9 +72,18 @@ export const detectWaste = async (imagePath) => {
     return detections;
   } catch (error) {
     if (!error.response) {
+      if (error.code === 'ECONNABORTED') {
+        const serviceError = new Error(
+          `AI detection service timed out while starting at ${aiModelUrl}. Please try again in a moment.`
+        );
+        serviceError.statusCode = 503;
+        throw serviceError;
+      }
+
       // Service is down / unreachable
       const serviceError = new Error(
-        'AI detection service is offline. Please ensure the Python YOLO service is running.'
+        `AI detection service is offline or unreachable at ${aiModelUrl}. ` +
+        'Please ensure the Python YOLO service is deployed and AI_MODEL_URL points to it.'
       );
       serviceError.statusCode = 503;
       throw serviceError;
