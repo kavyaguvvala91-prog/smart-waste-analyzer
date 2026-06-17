@@ -1,0 +1,45 @@
+# Dependencies
+**/node_modules/
+
+# Build outputs
+**/dist/
+**/build/
+**/.cache/
+**/.vite/
+
+# Python artifacts
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.venv/
+**/venv/
+
+# Environment files
+**/.env
+**/.env.local
+**/.env.development
+**/.env.production
+**/.env.test
+
+# Logs
+**/logs/
+**/*.log
+
+# Uploaded/generated content
+backend/uploads/*
+!backend/uploads/.gitkeep
+ai-model/uploads/*
+!ai-model/uploads/.gitkeep
+ai-model/predictions/*
+!ai-model/predictions/.gitkeep
+
+# OS and editor files
+**/.DS_Store
+**/.idea/
+.vscode/settings.json
+
+# Misc
+.coverage
+coverage/
+Thumbs.db
