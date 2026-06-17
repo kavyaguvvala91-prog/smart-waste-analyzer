@@ -6,38 +6,42 @@
 import mongoose from 'mongoose';
 
 const connectDB = async () => {
-  const uri = process.env.MONGODB_URI;
+  const uri = String(process.env.MONGODB_URI || '')
+    .trim()
+    .replace(/^['"]|['"]$/g, '');
 
   if (!uri) {
-    console.error('❌ MONGODB_URI is not defined in environment variables');
+    console.error('MONGODB_URI is not defined in environment variables');
+    process.exit(1);
+  }
+
+  if (!uri.startsWith('mongodb://') && !uri.startsWith('mongodb+srv://')) {
+    console.error('MONGODB_URI must start with "mongodb://" or "mongodb+srv://".');
     process.exit(1);
   }
 
   const options = {
-    serverSelectionTimeoutMS: 5000,   // Fail fast if no server found
-    socketTimeoutMS: 45000,           // Close sockets after 45s of inactivity
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000,
   };
 
   try {
     const conn = await mongoose.connect(uri, options);
-    console.log(`✅ MongoDB connected: ${conn.connection.host}`);
+    console.log(`MongoDB connected: ${conn.connection.host}`);
 
-    // Handle connection events
     mongoose.connection.on('disconnected', () => {
-      console.warn('⚠️  MongoDB disconnected. Attempting to reconnect...');
+      console.warn('MongoDB disconnected. Attempting to reconnect...');
     });
 
     mongoose.connection.on('reconnected', () => {
-      console.log('✅ MongoDB reconnected');
+      console.log('MongoDB reconnected');
     });
 
     mongoose.connection.on('error', (err) => {
-      console.error('❌ MongoDB connection error:', err.message);
+      console.error('MongoDB connection error:', err.message);
     });
-
   } catch (error) {
-    console.error(`❌ MongoDB connection failed: ${error.message}`);
-    // Exit process with failure — let process manager (PM2/Docker) restart
+    console.error(`MongoDB connection failed: ${error.message}`);
     process.exit(1);
   }
 };
