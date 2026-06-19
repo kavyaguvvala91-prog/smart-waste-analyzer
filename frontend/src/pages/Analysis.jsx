@@ -7,7 +7,7 @@ import PieChartCard from '../components/PieChartCard';
 import ErrorCard from '../components/ErrorCard';
 import { useWaste } from '../hooks/useWaste';
 import { analyzeWaste, createWasteReport } from '../services/api';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { getTopWasteType, summarizeDetections } from '../utils/waste';
 
 const QuickLinkCard = ({ title, description, to, cta }) => (

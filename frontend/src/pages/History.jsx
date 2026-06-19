@@ -5,7 +5,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorCard from '../components/ErrorCard';
 import { useWaste } from '../hooks/useWaste';
 import { getHistory } from '../services/api';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 
 export default function History() {
   const { state, dispatch } = useWaste();

@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FiSave, FiShield, FiUser } from 'react-icons/fi';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { getEcoLevel } from '../utils/eco';
 
 export default function Profile() {

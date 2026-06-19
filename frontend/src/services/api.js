@@ -2,10 +2,12 @@ import axios from 'axios';
 
 const apiBaseURL = import.meta.env.VITE_API_BASE_URL?.trim() || '';
 const mediaBaseURL = import.meta.env.VITE_MEDIA_BASE_URL?.trim() || import.meta.env.VITE_API_BASE_URL?.trim() || 'http://localhost:5001';
+const API_TIMEOUT_MS = 120000;
 
 const api = axios.create({
   baseURL: apiBaseURL,
-  timeout: 45000,
+  // AI-heavy requests can take a while, especially on a cold start.
+  timeout: API_TIMEOUT_MS,
 });
 
 export const setAuthToken = (token) => {

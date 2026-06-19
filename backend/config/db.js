@@ -22,7 +22,8 @@ const connectDB = async () => {
 
   const options = {
     serverSelectionTimeoutMS: 5000,
-    socketTimeoutMS: 45000,
+    // Allow longer-running AI-adjacent requests and slower cloud DB sockets.
+    socketTimeoutMS: 120000,
   };
 
   try {

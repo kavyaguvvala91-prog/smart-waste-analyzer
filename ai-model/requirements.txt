@@ -12,7 +12,8 @@ ultralytics>=8.3.0
 # Computer vision & image processing
 opencv-python>=4.12.0.88
 Pillow>=11.0.0
-numpy>=2.2.0
+# Ultralytics/Torch here are built against the NumPy 1.x ABI in this repo.
+numpy<2
 
 # PyTorch
 torch>=2.9.0

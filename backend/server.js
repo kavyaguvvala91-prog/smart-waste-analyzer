@@ -58,11 +58,16 @@ app.use(helmet({
 }));
 
 // CORS configuration
+const allowedOrigins = (process.env.FRONTEND_URL || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
+  origin: allowedOrigins.length > 0 ? allowedOrigins : true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,
+  credentials: allowedOrigins.length > 0,
 }));
 
 // Global rate limiter: 100 requests per 15 minutes per IP

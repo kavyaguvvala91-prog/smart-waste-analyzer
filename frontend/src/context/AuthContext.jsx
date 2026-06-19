@@ -1,9 +1,9 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useEffect, useMemo, useState } from 'react';
 import { fetchCurrentUser, loginUser, registerUser, setAuthToken as setApiAuthToken, updateUserProfile } from '../services/api';
 
 const STORAGE_KEY = 'smart-waste-auth';
 
-const AuthContext = createContext(null);
+export const AuthContext = createContext(null);
 
 const readStoredAuth = () => {
   if (typeof window === 'undefined') return { token: null, user: null };
@@ -156,11 +156,3 @@ export function AuthProvider({ children }) {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
-  return context;
-};

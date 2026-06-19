@@ -7,7 +7,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorCard from '../components/ErrorCard';
 import { useWaste } from '../hooks/useWaste';
 import { analyzeWaste, detectWaste } from '../services/api';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { summarizeDetections } from '../utils/waste';
 
 export default function Detection() {

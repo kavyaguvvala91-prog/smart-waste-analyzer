@@ -29,7 +29,7 @@ import StatisticsCard from '../components/StatisticsCard';
 import MapView from '../components/MapView';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorCard from '../components/ErrorCard';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { getDashboardOverview, resolveMediaUrl, updateReportStatus } from '../services/api';
 import { buildPointProgress, getEcoLevel } from '../utils/eco';
 

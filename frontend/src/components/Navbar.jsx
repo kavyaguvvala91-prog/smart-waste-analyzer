@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { FiChevronDown, FiLogOut, FiMenu, FiRepeat, FiX } from 'react-icons/fi';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { getEcoLevel } from '../utils/eco';
 
 const guestLinks = [

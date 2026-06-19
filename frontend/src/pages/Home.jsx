@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { FiCamera, FiCheckCircle, FiCompass, FiGlobe, FiMapPin, FiRepeat, FiShield } from 'react-icons/fi';
 import Hero from '../components/Hero';
 import FeatureCard from '../components/FeatureCard';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 
 const featureCards = [
   {

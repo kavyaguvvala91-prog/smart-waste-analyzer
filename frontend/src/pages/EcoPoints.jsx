@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { FiAward, FiShield, FiTrendingUp } from 'react-icons/fi';
 import StatisticsCard from '../components/StatisticsCard';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { buildPointProgress, getEcoLevel } from '../utils/eco';
 
 const rewards = [
