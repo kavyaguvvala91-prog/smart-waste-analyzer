@@ -1,24 +1,19 @@
 # Smart Waste Analyzer - AI Microservice Dependencies
-# Kept compatible with Render's current Python runtime.
+# Pinned to the known-good versions used by the local working venv.
 
-# Core web framework
 flask==3.0.3
 flask-cors==4.0.1
 Werkzeug==3.0.3
 
-# YOLOv8 object detection
-ultralytics>=8.3.0
+ultralytics==8.2.48
+ultralytics-thop==2.0.20
 
-# Computer vision & image processing
-opencv-python>=4.12.0.88
-Pillow>=11.0.0
-# Ultralytics/Torch here are built against the NumPy 1.x ABI in this repo.
-numpy<2
+opencv-python==4.10.0.84
+Pillow==11.0.0
+numpy==1.26.4
 
-# PyTorch
-torch>=2.9.0
-torchvision>=0.24.0
+torch==2.3.1
+torchvision==0.18.1
 
-# Utilities
 python-dotenv==1.0.1
 gunicorn==22.0.0
