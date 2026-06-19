@@ -1,7 +1,11 @@
 import axios from 'axios';
 
-const apiBaseURL = import.meta.env.VITE_API_BASE_URL?.trim() || '';
-const mediaBaseURL = import.meta.env.VITE_MEDIA_BASE_URL?.trim() || import.meta.env.VITE_API_BASE_URL?.trim() || 'http://localhost:5001';
+const defaultApiBaseURL = import.meta.env.DEV
+  ? 'http://localhost:5001'
+  : 'https://smart-waste-analyzer.onrender.com';
+
+const apiBaseURL = import.meta.env.VITE_API_BASE_URL?.trim() || defaultApiBaseURL;
+const mediaBaseURL = import.meta.env.VITE_MEDIA_BASE_URL?.trim() || apiBaseURL;
 const API_TIMEOUT_MS = 120000;
 
 const api = axios.create({

@@ -58,10 +58,17 @@ app.use(helmet({
 }));
 
 // CORS configuration
-const allowedOrigins = (process.env.FRONTEND_URL || '')
-  .split(',')
-  .map((origin) => origin.trim())
-  .filter(Boolean);
+const defaultAllowedOrigins = process.env.NODE_ENV === 'production'
+  ? ['https://smart-waste-analyzer.vercel.app']
+  : [];
+
+const allowedOrigins = [
+  ...defaultAllowedOrigins,
+  ...(process.env.FRONTEND_URL || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean),
+].filter((origin, index, array) => array.indexOf(origin) === index);
 
 app.use(cors({
   origin: allowedOrigins.length > 0 ? allowedOrigins : true,
