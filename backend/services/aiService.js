@@ -40,6 +40,17 @@ const isReachable = async (url, timeoutMs = 1500) => {
   }
 };
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const postDetectionRequest = async (aiModelUrl, form, requestTimeoutMs) => {
+  return axios.post(`${aiModelUrl}/predict`, form, {
+    headers: {
+      ...form.getHeaders(),
+    },
+    timeout: requestTimeoutMs,
+  });
+};
+
 const startLocalAiService = async () => {
   if (localAiServiceStartPromise) {
     return localAiServiceStartPromise;
@@ -190,12 +201,7 @@ export const detectWaste = async (imagePath) => {
   }
 
   try {
-    const response = await axios.post(`${aiModelUrl}/predict`, form, {
-      headers: {
-        ...form.getHeaders(),
-      },
-      timeout: requestTimeoutMs,
-    });
+    const response = await postDetectionRequest(aiModelUrl, form, requestTimeoutMs);
 
     const { detections } = response.data;
 
@@ -205,6 +211,36 @@ export const detectWaste = async (imagePath) => {
 
     return detections;
   } catch (error) {
+    const status = error.response?.status;
+
+    if (status && [502, 503, 504].includes(status)) {
+      await sleep(1500);
+
+      try {
+        const retryForm = new FormData();
+        retryForm.append('image', fs.createReadStream(imagePath));
+        const retryResponse = await postDetectionRequest(aiModelUrl, retryForm, requestTimeoutMs);
+        const { detections } = retryResponse.data;
+
+        if (!Array.isArray(detections)) {
+          throw new Error('AI service returned an invalid detections format');
+        }
+
+        return detections;
+      } catch (retryError) {
+        if (retryError.response) {
+          throw retryError;
+        }
+
+        const serviceError = new Error(
+          `AI detection service is temporarily unavailable at ${aiModelUrl}. ` +
+          'Please try again in a moment.'
+        );
+        serviceError.statusCode = 503;
+        throw serviceError;
+      }
+    }
+
     if (!error.response) {
       if (error.code === 'ECONNABORTED') {
         const serviceError = new Error(
