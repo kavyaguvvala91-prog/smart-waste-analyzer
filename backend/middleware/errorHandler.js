@@ -58,10 +58,11 @@ export const errorHandler = (err, req, res, next) => {
     const service = err.config?.url || 'external service';
     const axiosStatus = err.response?.status;
     const apiError = err.response?.data?.error;
+    const apiMessage = err.response?.data?.message;
     const serviceMessage =
       (typeof apiError === 'string' && apiError) ||
       apiError?.message ||
-      err.response?.data?.message ||
+      apiMessage ||
       err.message;
 
     if (!err.response) {
@@ -71,7 +72,7 @@ export const errorHandler = (err, req, res, next) => {
       });
     }
 
-    return res.status(502).json({
+    return res.status(axiosStatus || 502).json({
       success: false,
       message: `Error from ${service}: ${serviceMessage}`,
       upstreamStatus: axiosStatus,

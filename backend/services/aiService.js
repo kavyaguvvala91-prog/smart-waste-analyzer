@@ -21,6 +21,10 @@ const AI_MODEL_PYTHON = path.join(AI_MODEL_WORKDIR, 'venv', 'Scripts', 'python.e
 
 let localAiServiceStartPromise = null;
 let localAiServiceProcess = null;
+const RETRYABLE_UPSTREAM_STATUSES = new Set([502, 503, 504]);
+const AI_SERVICE_READY_TIMEOUT_MS = 60000;
+const AI_SERVICE_READY_POLL_MS = 2000;
+const AI_SERVICE_RETRY_DELAY_MS = 5000;
 
 const isLocalHost = (value) => {
   try {
@@ -49,6 +53,82 @@ const postDetectionRequest = async (aiModelUrl, form, requestTimeoutMs) => {
     },
     timeout: requestTimeoutMs,
   });
+};
+
+const getResponseMessage = (payload, fallback) => {
+  if (typeof payload === 'string' && payload.trim()) {
+    return payload;
+  }
+
+  if (payload && typeof payload === 'object') {
+    if (typeof payload.message === 'string' && payload.message.trim()) {
+      return payload.message;
+    }
+
+    if (typeof payload.error === 'string' && payload.error.trim()) {
+      return payload.error;
+    }
+
+    if (payload.error && typeof payload.error.message === 'string' && payload.error.message.trim()) {
+      return payload.error.message;
+    }
+  }
+
+  return fallback;
+};
+
+const buildServiceError = (message, statusCode, aiModelUrl) => {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  error.upstreamStatus = statusCode;
+  error.serviceUrl = aiModelUrl;
+  return error;
+};
+
+const waitForServiceReady = async (aiModelUrl, timeoutMs = AI_SERVICE_READY_TIMEOUT_MS) => {
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    try {
+      await axios.get(`${aiModelUrl}/health`, { timeout: 2000 });
+      return true;
+    } catch {
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) {
+        break;
+      }
+
+      await sleep(Math.min(AI_SERVICE_READY_POLL_MS, remaining));
+    }
+  }
+
+  return false;
+};
+
+const parseDetectionResponse = (response, aiModelUrl) => {
+  const data = response.data || {};
+  const upstreamStatus = response.status || 502;
+
+  if (data.success === false) {
+    const message = getResponseMessage(data, 'AI service reported a failure.');
+    throw buildServiceError(
+      `AI detection service at ${aiModelUrl} returned ${upstreamStatus}: ${message}`,
+      upstreamStatus,
+      aiModelUrl,
+    );
+  }
+
+  const { detections } = data;
+
+  if (!Array.isArray(detections)) {
+    throw buildServiceError(
+      `AI service returned an invalid detections format from ${aiModelUrl}`,
+      upstreamStatus,
+      aiModelUrl,
+    );
+  }
+
+  return detections;
 };
 
 const startLocalAiService = async () => {
@@ -200,33 +280,38 @@ export const detectWaste = async (imagePath) => {
     await startLocalAiService();
   }
 
+  const serviceReady = await waitForServiceReady(aiModelUrl);
+  if (!serviceReady) {
+    throw buildServiceError(
+      `AI detection service is temporarily unavailable at ${aiModelUrl}. Please try again in a moment.`,
+      503,
+      aiModelUrl,
+    );
+  }
+
   try {
     const response = await postDetectionRequest(aiModelUrl, form, requestTimeoutMs);
-
-    const { detections } = response.data;
-
-    if (!Array.isArray(detections)) {
-      throw new Error('AI service returned an invalid detections format');
-    }
-
-    return detections;
+    return parseDetectionResponse(response, aiModelUrl);
   } catch (error) {
     const status = error.response?.status;
 
-    if (status && [502, 503, 504].includes(status)) {
-      await sleep(1500);
+    if (status && RETRYABLE_UPSTREAM_STATUSES.has(status)) {
+      await sleep(AI_SERVICE_RETRY_DELAY_MS);
+
+      const retryReady = await waitForServiceReady(aiModelUrl, AI_SERVICE_READY_TIMEOUT_MS / 2);
+      if (!retryReady) {
+        throw buildServiceError(
+          `AI detection service is temporarily unavailable at ${aiModelUrl}. Please try again in a moment.`,
+          503,
+          aiModelUrl,
+        );
+      }
 
       try {
         const retryForm = new FormData();
         retryForm.append('image', fs.createReadStream(imagePath));
         const retryResponse = await postDetectionRequest(aiModelUrl, retryForm, requestTimeoutMs);
-        const { detections } = retryResponse.data;
-
-        if (!Array.isArray(detections)) {
-          throw new Error('AI service returned an invalid detections format');
-        }
-
-        return detections;
+        return parseDetectionResponse(retryResponse, aiModelUrl);
       } catch (retryError) {
         if (retryError.response) {
           throw retryError;
@@ -258,6 +343,19 @@ export const detectWaste = async (imagePath) => {
       serviceError.statusCode = 503;
       throw serviceError;
     }
+
+    if (error.response) {
+      const serviceMessage = getResponseMessage(
+        error.response.data,
+        error.message || 'AI detection request failed.',
+      );
+      throw buildServiceError(
+        `AI detection service at ${aiModelUrl} returned ${status || 502}: ${serviceMessage}`,
+        status || 502,
+        aiModelUrl,
+      );
+    }
+
     throw error;
   }
 };
