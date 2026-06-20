@@ -13,4 +13,7 @@ module.exports = defineConfig({
       },
     },
   },
+  build: {
+    chunkSizeWarningLimit: 2000,
+  },
 });
