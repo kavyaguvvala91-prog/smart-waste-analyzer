@@ -9,7 +9,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, URL } from 'url';
 
 // Route imports
 import detectionRoutes from './routes/detectionRoutes.js';
@@ -70,11 +70,30 @@ const allowedOrigins = [
     .filter(Boolean),
 ].filter((origin, index, array) => array.indexOf(origin) === index);
 
+const isAllowedOrigin = (origin) => {
+  if (!origin) return false;
+  if (allowedOrigins.includes(origin)) return true;
+
+  try {
+    const url = new URL(origin);
+    return url.hostname.endsWith('.vercel.app');
+  } catch {
+    return false;
+  }
+};
+
 app.use(cors({
-  origin: allowedOrigins.length > 0 ? allowedOrigins : true,
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.length === 0 || isAllowedOrigin(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`CORS blocked for origin: ${origin}`), false);
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: allowedOrigins.length > 0,
+  credentials: true,
 }));
 
 // Global rate limiter: 100 requests per 15 minutes per IP
