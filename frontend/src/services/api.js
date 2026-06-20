@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const defaultApiBaseURL = import.meta.env.DEV
   ? 'http://localhost:5001'
-  : 'https://smart-waste-analyzer.onrender.com';
+  : '';
 
 const apiBaseURL = import.meta.env.VITE_API_BASE_URL?.trim() || defaultApiBaseURL;
 const mediaBaseURL = import.meta.env.VITE_MEDIA_BASE_URL?.trim() || apiBaseURL;
