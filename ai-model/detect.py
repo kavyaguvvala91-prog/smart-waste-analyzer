@@ -19,6 +19,7 @@ from utils.image_processing import (
     save_upload,
     load_image_cv2,
     decode_frame_bytes,
+    resize_image_for_inference,
     save_annotated_image,
     cleanup_file,
 )
@@ -72,7 +73,8 @@ def detect_from_upload(file_storage, conf_threshold: float = 0.25) -> dict:
 
     # --- 3. Infer ---
     try:
-        detections = run_inference(image_path, conf_threshold=conf_threshold)
+        image_bgr = resize_image_for_inference(load_image_cv2(image_path))
+        detections = run_inference(image_bgr, conf_threshold=conf_threshold)
     except Exception as exc:
         logger.error("Inference error: %s", exc)
         cleanup_file(image_path)
@@ -118,8 +120,9 @@ def detect_from_upload_with_image(
 
     # --- Infer with annotation ---
     try:
+        image_bgr = resize_image_for_inference(load_image_cv2(image_path))
         detections, annotated_bgr = run_inference_with_annotated_image(
-            image_path, conf_threshold=conf_threshold
+            image_bgr, conf_threshold=conf_threshold
         )
     except Exception as exc:
         logger.error("Inference error: %s", exc)
@@ -172,7 +175,7 @@ def detect_from_webcam_frame(file_storage, conf_threshold: float = 0.25) -> dict
     # --- Decode bytes in memory (no disk I/O) ---
     try:
         frame_bytes = file_storage.read()
-        frame_bgr   = decode_frame_bytes(frame_bytes)
+        frame_bgr   = resize_image_for_inference(decode_frame_bytes(frame_bytes))
     except ValueError as exc:
         logger.warning("Frame decode error: %s", exc)
         return {"success": False, "message": str(exc)}

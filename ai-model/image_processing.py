@@ -21,6 +21,7 @@ ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp", ".tiff"}
 
 # Max upload size: 16 MB
 MAX_IMAGE_SIZE_BYTES = 16 * 1024 * 1024
+MAX_INFERENCE_DIMENSION = 1280
 
 
 def is_valid_extension(filename: str) -> bool:
@@ -99,6 +100,27 @@ def load_image_cv2(image_path: str) -> np.ndarray:
     if img is None:
         raise ValueError(f"OpenCV could not decode image at '{image_path}'. File may be corrupt.")
     return img
+
+
+def resize_image_for_inference(img_bgr: np.ndarray, max_dimension: int = MAX_INFERENCE_DIMENSION) -> np.ndarray:
+    """
+    Downscale large images before inference to reduce memory use and latency.
+
+    The resize preserves the aspect ratio and never upsizes smaller images.
+    """
+    if img_bgr is None:
+        raise ValueError('Image is required for inference.')
+
+    height, width = img_bgr.shape[:2]
+    largest_side = max(height, width)
+
+    if largest_side <= max_dimension:
+      return img_bgr
+
+    scale = max_dimension / float(largest_side)
+    new_width = max(1, int(round(width * scale)))
+    new_height = max(1, int(round(height * scale)))
+    return cv2.resize(img_bgr, (new_width, new_height), interpolation=cv2.INTER_AREA)
 
 
 def load_image_pil(image_path: str) -> Image.Image:
