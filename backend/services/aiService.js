@@ -58,6 +58,11 @@ const postDetectionRequest = async (aiModelUrl, form, requestTimeoutMs) => {
 
 const getResponseMessage = (payload, fallback) => {
   if (typeof payload === 'string' && payload.trim()) {
+    const trimmed = payload.trim();
+    if (/^<!doctype html>/i.test(trimmed) || /^<html[\s>]/i.test(trimmed)) {
+      return fallback;
+    }
+
     return payload;
   }
 
