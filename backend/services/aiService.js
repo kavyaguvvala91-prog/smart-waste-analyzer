@@ -85,6 +85,15 @@ const buildServiceError = (message, statusCode, aiModelUrl) => {
   return error;
 };
 
+const buildUnavailableServiceError = (aiModelUrl, details = '') => {
+  const suffix = details ? ` ${details}` : '';
+  return buildServiceError(
+    `AI detection service is temporarily unavailable.${suffix} Please try again in a moment.`,
+    503,
+    aiModelUrl,
+  );
+};
+
 const waitForServiceReady = async (aiModelUrl, timeoutMs = AI_SERVICE_READY_TIMEOUT_MS) => {
   const deadline = Date.now() + timeoutMs;
 
@@ -280,31 +289,19 @@ export const detectWaste = async (imagePath) => {
     await startLocalAiService();
   }
 
-  const serviceReady = await waitForServiceReady(aiModelUrl);
-  if (!serviceReady) {
-    throw buildServiceError(
-      `AI detection service is temporarily unavailable at ${aiModelUrl}. Please try again in a moment.`,
-      503,
-      aiModelUrl,
-    );
-  }
-
   try {
     const response = await postDetectionRequest(aiModelUrl, form, requestTimeoutMs);
     return parseDetectionResponse(response, aiModelUrl);
   } catch (error) {
     const status = error.response?.status;
+    const isTransientNetworkError = !error.response || error.code === 'ECONNABORTED';
 
-    if (status && RETRYABLE_UPSTREAM_STATUSES.has(status)) {
+    if ((status && RETRYABLE_UPSTREAM_STATUSES.has(status)) || isTransientNetworkError) {
       await sleep(AI_SERVICE_RETRY_DELAY_MS);
 
       const retryReady = await waitForServiceReady(aiModelUrl, AI_SERVICE_READY_TIMEOUT_MS / 2);
       if (!retryReady) {
-        throw buildServiceError(
-          `AI detection service is temporarily unavailable at ${aiModelUrl}. Please try again in a moment.`,
-          503,
-          aiModelUrl,
-        );
+        throw buildUnavailableServiceError(aiModelUrl);
       }
 
       try {
@@ -317,31 +314,12 @@ export const detectWaste = async (imagePath) => {
           throw retryError;
         }
 
-        const serviceError = new Error(
-          `AI detection service is temporarily unavailable at ${aiModelUrl}. ` +
-          'Please try again in a moment.'
-        );
-        serviceError.statusCode = 503;
-        throw serviceError;
+        throw buildUnavailableServiceError(aiModelUrl);
       }
     }
 
     if (!error.response) {
-      if (error.code === 'ECONNABORTED') {
-        const serviceError = new Error(
-          `AI detection service timed out while starting at ${aiModelUrl}. Please try again in a moment.`
-        );
-        serviceError.statusCode = 503;
-        throw serviceError;
-      }
-
-      // Service is down / unreachable
-      const serviceError = new Error(
-        `AI detection service is offline or unreachable at ${aiModelUrl}. ` +
-        'Please ensure the Python YOLO service is deployed and AI_MODEL_URL points to it.'
-      );
-      serviceError.statusCode = 503;
-      throw serviceError;
+      throw buildUnavailableServiceError(aiModelUrl);
     }
 
     if (error.response) {
@@ -350,7 +328,7 @@ export const detectWaste = async (imagePath) => {
         error.message || 'AI detection request failed.',
       );
       throw buildServiceError(
-        `AI detection service at ${aiModelUrl} returned ${status || 502}: ${serviceMessage}`,
+        `AI detection service returned ${status || 502}: ${serviceMessage}`,
         status || 502,
         aiModelUrl,
       );
