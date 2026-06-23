@@ -25,6 +25,7 @@ const RETRYABLE_UPSTREAM_STATUSES = new Set([502, 503, 504]);
 const AI_SERVICE_READY_TIMEOUT_MS = 60000;
 const AI_SERVICE_READY_POLL_MS = 2000;
 const AI_SERVICE_RETRY_DELAYS_MS = [5000, 10000];
+const AI_SERVICE_REQUEST_TIMEOUT_MS = 30000;
 
 const isLocalHost = (value) => {
   try {
@@ -281,7 +282,7 @@ const RECYCLABLE_CLASSES = new Set([
  */
 export const detectWaste = async (imagePath) => {
   const aiModelUrl = getAiModelUrl();
-  const requestTimeoutMs = 120000; // Give free Render services time to wake up
+  const requestTimeoutMs = AI_SERVICE_REQUEST_TIMEOUT_MS;
 
   if (process.env.NODE_ENV !== 'production' && isLocalHost(aiModelUrl)) {
     await startLocalAiService();
