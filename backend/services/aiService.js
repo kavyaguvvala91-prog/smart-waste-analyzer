@@ -24,7 +24,7 @@ let localAiServiceProcess = null;
 const RETRYABLE_UPSTREAM_STATUSES = new Set([502, 503, 504]);
 const AI_SERVICE_READY_TIMEOUT_MS = 60000;
 const AI_SERVICE_READY_POLL_MS = 2000;
-const AI_SERVICE_RETRY_DELAY_MS = 5000;
+const AI_SERVICE_RETRY_DELAYS_MS = [5000, 10000];
 
 const isLocalHost = (value) => {
   try {
@@ -280,8 +280,6 @@ const RECYCLABLE_CLASSES = new Set([
  * @returns {Promise<Array>} Array of detection objects { class, confidence }
  */
 export const detectWaste = async (imagePath) => {
-  const form = new FormData();
-  form.append('image', fs.createReadStream(imagePath));
   const aiModelUrl = getAiModelUrl();
   const requestTimeoutMs = 120000; // Give free Render services time to wake up
 
@@ -289,53 +287,50 @@ export const detectWaste = async (imagePath) => {
     await startLocalAiService();
   }
 
-  try {
-    const response = await postDetectionRequest(aiModelUrl, form, requestTimeoutMs);
-    return parseDetectionResponse(response, aiModelUrl);
-  } catch (error) {
-    const status = error.response?.status;
-    const isTransientNetworkError = !error.response || error.code === 'ECONNABORTED';
+  const retryDelays = [0, ...AI_SERVICE_RETRY_DELAYS_MS];
 
-    if ((status && RETRYABLE_UPSTREAM_STATUSES.has(status)) || isTransientNetworkError) {
-      await sleep(AI_SERVICE_RETRY_DELAY_MS);
+  for (let attempt = 0; attempt < retryDelays.length; attempt += 1) {
+    if (retryDelays[attempt] > 0) {
+      await sleep(retryDelays[attempt]);
+    }
 
-      const retryReady = await waitForServiceReady(aiModelUrl, AI_SERVICE_READY_TIMEOUT_MS / 2);
-      if (!retryReady) {
+    const form = new FormData();
+    form.append('image', fs.createReadStream(imagePath));
+
+    try {
+      const response = await postDetectionRequest(aiModelUrl, form, requestTimeoutMs);
+      return parseDetectionResponse(response, aiModelUrl);
+    } catch (error) {
+      const status = error.response?.status;
+      const isTransientNetworkError = !error.response || error.code === 'ECONNABORTED';
+      const isRetryableStatus = status && RETRYABLE_UPSTREAM_STATUSES.has(status);
+      const hasRetriesLeft = attempt < retryDelays.length - 1;
+
+      if (hasRetriesLeft && (isRetryableStatus || isTransientNetworkError)) {
+        continue;
+      }
+
+      if (!error.response) {
         throw buildUnavailableServiceError(aiModelUrl);
       }
 
-      try {
-        const retryForm = new FormData();
-        retryForm.append('image', fs.createReadStream(imagePath));
-        const retryResponse = await postDetectionRequest(aiModelUrl, retryForm, requestTimeoutMs);
-        return parseDetectionResponse(retryResponse, aiModelUrl);
-      } catch (retryError) {
-        if (retryError.response) {
-          throw retryError;
-        }
-
-        throw buildUnavailableServiceError(aiModelUrl);
+      if (error.response) {
+        const serviceMessage = getResponseMessage(
+          error.response.data,
+          error.message || 'AI detection request failed.',
+        );
+        throw buildServiceError(
+          `AI detection service returned ${status || 502}: ${serviceMessage}`,
+          status || 502,
+          aiModelUrl,
+        );
       }
-    }
 
-    if (!error.response) {
-      throw buildUnavailableServiceError(aiModelUrl);
+      throw error;
     }
-
-    if (error.response) {
-      const serviceMessage = getResponseMessage(
-        error.response.data,
-        error.message || 'AI detection request failed.',
-      );
-      throw buildServiceError(
-        `AI detection service returned ${status || 502}: ${serviceMessage}`,
-        status || 502,
-        aiModelUrl,
-      );
-    }
-
-    throw error;
   }
+
+  throw buildUnavailableServiceError(aiModelUrl);
 };
 
 /**
