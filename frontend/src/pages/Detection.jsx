@@ -133,22 +133,6 @@ export default function Detection() {
           </div>
         </div>
 
-        <div className="rounded-[28px] border border-emerald-100 bg-emerald-50/70 p-6 shadow-[0_18px_48px_rgba(16,185,129,0.08)]">
-          <p className="text-sm font-bold uppercase tracking-[0.24em] text-emerald-700">Protected actions</p>
-          <p className="mt-3 text-sm leading-7 text-slate-600">
-            Uploading an image, opening the camera, and running detection now ask for sign-in if the visitor is not authenticated.
-          </p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl bg-white p-4 shadow-[0_14px_32px_rgba(16,185,129,0.08)]">
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">Auth status</p>
-              <p className="mt-2 text-sm font-semibold text-slate-900">{isAuthenticated ? 'Signed in' : 'Guest visitor'}</p>
-            </div>
-            <div className="rounded-2xl bg-white p-4 shadow-[0_14px_32px_rgba(16,185,129,0.08)]">
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">Workflow</p>
-              <p className="mt-2 text-sm font-semibold text-slate-900">Upload, detect, analyze, report</p>
-            </div>
-          </div>
-        </div>
       </div>
 
       <div className="mt-6 flex justify-end">
