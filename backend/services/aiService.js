@@ -100,6 +100,28 @@ const buildUnavailableServiceError = (aiModelUrl, details = '') => {
   );
 };
 
+const stopLocalAiService = async () => {
+  const child = localAiServiceProcess;
+  if (!child || child.killed) {
+    return;
+  }
+
+  await new Promise((resolve) => {
+    const timeout = setTimeout(resolve, 3000);
+    child.once('exit', () => {
+      clearTimeout(timeout);
+      resolve();
+    });
+    child.kill();
+  });
+};
+
+const restartLocalAiService = async () => {
+  await stopLocalAiService();
+  localAiServiceStartPromise = null;
+  return startLocalAiService();
+};
+
 const waitForServiceReady = async (aiModelUrl, timeoutMs = AI_SERVICE_READY_TIMEOUT_MS) => {
   const deadline = Date.now() + timeoutMs;
 
@@ -288,8 +310,10 @@ const RECYCLABLE_CLASSES = new Set([
 export const detectWaste = async (imagePath) => {
   const aiModelUrl = getAiModelUrl();
   const requestTimeoutMs = AI_SERVICE_REQUEST_TIMEOUT_MS;
+  const usingLocalService = process.env.NODE_ENV !== 'production' && isLocalHost(aiModelUrl);
+  let restartedThisRequest = false;
 
-  if (process.env.NODE_ENV !== 'production' && isLocalHost(aiModelUrl)) {
+  if (usingLocalService) {
     await startLocalAiService();
   }
 
@@ -313,6 +337,10 @@ export const detectWaste = async (imagePath) => {
       const hasRetriesLeft = attempt < retryDelays.length - 1;
 
       if (hasRetriesLeft && (isRetryableStatus || isTransientNetworkError)) {
+        if (usingLocalService && !restartedThisRequest) {
+          await restartLocalAiService();
+          restartedThisRequest = true;
+        }
         continue;
       }
 
@@ -323,10 +351,15 @@ export const detectWaste = async (imagePath) => {
       if (error.response) {
         const serviceMessage = getResponseMessage(
           error.response.data,
-          error.message || 'AI detection request failed.',
+          status && RETRYABLE_UPSTREAM_STATUSES.has(status)
+            ? 'The detector service is temporarily unavailable.'
+            : 'AI detection request failed.',
         );
+        const friendlyRetryHint = status && RETRYABLE_UPSTREAM_STATUSES.has(status)
+          ? ' Please try again in a moment.'
+          : '';
         throw buildServiceError(
-          `AI detection service returned ${status || 502}: ${serviceMessage}`,
+          `AI detection service returned ${status || 502}: ${serviceMessage}${friendlyRetryHint}`,
           status || 502,
           aiModelUrl,
         );

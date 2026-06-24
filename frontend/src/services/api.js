@@ -29,7 +29,14 @@ export const resolveMediaUrl = (url) => {
 };
 
 const readErrorMessage = (error, fallback) => {
-  if (error?.response?.data?.message) return error.response.data.message;
+  const message = error?.response?.data?.message;
+  if (typeof message === 'string') {
+    if (message.includes('Request failed with status code 502') || message.includes('AI detection service returned 502')) {
+      return 'The detector service is temporarily unavailable. Please try again in a moment.';
+    }
+
+    return message;
+  }
   if (error?.response?.data?.error) return error.response.data.error;
   if (error?.message) return error.message;
   return fallback;
